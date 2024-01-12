@@ -1,5 +1,5 @@
 from typing import List
-from element import Element
+from element import Element, TextElement
 
 
 # Load a file into a parseable format
@@ -21,10 +21,17 @@ def parse(loaded: str) -> Element:
     reading_element: bool = False
     current_element: str = ""
     current_element_instance: Element = None
+    parsing_text: bool = False
+    parsed_text: str = ""
 
     for i, char in enumerate(loaded): 
         if char == "<":
             reading_element = True
+            if parsing_text:
+                text_element: TextElement = TextElement(parsed_text)
+                root_stack[-1].add_child_element(text_element)
+                parsing_text = False
+                parsed_text = ""
         elif char == ">":
             reading_element = False
             if current_element.startswith("/"):
@@ -40,6 +47,11 @@ def parse(loaded: str) -> Element:
             current_element = ""
         elif reading_element:
             current_element += char
+        elif parsing_text:
+            parsed_text += char
+        else:
+            parsing_text = True
+            parsed_text += char
 
     return root
     
