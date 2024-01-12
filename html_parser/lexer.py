@@ -1,5 +1,6 @@
 from typing import List
 from element import Element, TextElement
+from utilities import smart_split
 
 
 # Load a file into a parseable format
@@ -40,8 +41,16 @@ def parse(loaded: str) -> Element:
                 element_stack.pop(-1)
                 root_stack.pop(-1)
             else:
+                split_element: List[str] = smart_split(current_element)
+                print(split_element)
+                current_element = split_element[0]
                 element_stack.append(current_element)
                 current_element_instance = Element(current_element, "")
+                if len(split_element) > 1:
+                    # Handle attributes
+                    for attribute in split_element[1:]:
+                        split_attribute: List[str] = attribute.split("=")
+                        current_element_instance.add_attribute(*split_attribute)
                 root_stack[-1].add_child_element(current_element_instance)
                 root_stack.append(current_element_instance)
             current_element = ""
@@ -58,4 +67,4 @@ def parse(loaded: str) -> Element:
 
 loaded: str = load("html_parser/samples/sample1.html")
 root: Element = parse(loaded)
-root.print()
+root.print(attributes=True)
