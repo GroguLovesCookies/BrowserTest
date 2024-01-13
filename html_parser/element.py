@@ -27,13 +27,13 @@ class Element:
 
     def print(self, tabs: int = 0, attributes: bool = False):
         if attributes:
-            print("    "*tabs + self.type + "#" + self.id + "." + ".".join(self.classes), end=" ")
+            print("  "*tabs + self.type + "#" + self.id + "." + ".".join(self.classes), end=" ")
             print("(", end="")
             for attribute, value in self.attributes.items():
                 print(attribute + ": " + value, end=" ")
             print(")")
         else:
-            print("    "*tabs + self.type)
+            print("  "*tabs + self.type)
         for child in self.parsed_content:
             child.print(tabs + 1, attributes)
     
@@ -49,4 +49,4 @@ class TextElement(Element):
         self.content: str = text
 
     def print(self, tabs=0, attributes=False):
-        print("    "*tabs + self.content)
+        print("  "*tabs + self.content)

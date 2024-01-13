@@ -3,6 +3,9 @@ from element import Element, TextElement
 from utilities import smart_split
 
 
+void_elements: List[str] = ["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]
+
+
 # Load a file into a parseable format
 def load(filepath: str, split_lines: bool = True) -> str:
     with open(filepath) as f:
@@ -42,17 +45,20 @@ def parse(loaded: str) -> Element:
                 root_stack.pop(-1)
             else:
                 split_element: List[str] = smart_split(current_element)
-                print(split_element)
                 current_element = split_element[0]
-                element_stack.append(current_element)
                 current_element_instance = Element(current_element, "")
+                if current_element in void_elements:
+                    # Handle void elements
+                    root_stack[-1].add_child_element(current_element_instance)
+                else:
+                    element_stack.append(current_element)
+                    root_stack[-1].add_child_element(current_element_instance)
+                    root_stack.append(current_element_instance)
                 if len(split_element) > 1:
                     # Handle attributes
                     for attribute in split_element[1:]:
                         split_attribute: List[str] = attribute.split("=")
                         current_element_instance.add_attribute(*split_attribute)
-                root_stack[-1].add_child_element(current_element_instance)
-                root_stack.append(current_element_instance)
             current_element = ""
         elif reading_element:
             current_element += char
