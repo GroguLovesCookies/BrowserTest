@@ -1,23 +1,33 @@
-from typing import List, Dict
+from typing import List, Dict, Callable
+
+
+def set_id(element, value: str):
+    element.id = value[1:-1]
+
+
+def set_class(element, classes: str):
+    for class_value in classes[1:-1].split(" "):
+        element.classes.append(class_value)
 
 
 class Element:
+    attributes_to_functions: Dict[str, Callable] = \
+        {"id": set_id, "class": set_class}
+
     def __init__(self, el_type: str, raw_content: str):
         self.type: str = el_type
         self.raw_content: str = raw_content
         self.parsed_content: List[Element] = []
         self.attributes: Dict[str, str] = {}
-    
-    def parse_content(self):
-        # Parse content and add to list
-        ...
+        self.id: str = ""
+        self.classes: List[str] = []
 
     def add_child_element(self, child):
         self.parsed_content.append(child)
 
     def print(self, tabs: int = 0, attributes: bool = False):
         if attributes:
-            print("    "*tabs + self.type, end=" ")
+            print("    "*tabs + self.type + "#" + self.id + "." + ".".join(self.classes), end=" ")
             print("(", end="")
             for attribute, value in self.attributes.items():
                 print(attribute + ": " + value, end=" ")
@@ -29,6 +39,9 @@ class Element:
     
     def add_attribute(self, attribute, value):
         self.attributes[attribute] = value
+        if attribute in Element.attributes_to_functions.keys():
+            Element.attributes_to_functions[attribute](self, value)
+
 
 class TextElement(Element):
     def __init__(self, text: str):
