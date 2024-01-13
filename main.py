@@ -11,3 +11,6 @@ print(selector.recursive_select(root, lambda x: selector.filter_by_element(x, "h
 print(selector.recursive_select(root, lambda x: selector.filter_by_class(x, "emphasise")))
 print(selector.recursive_select(root, lambda x: selector.filter_by_id(x, "heading")))
 print(selector.recursive_select(root, lambda x: selector.filter_by_id(x, "second-p")))
+print(selector.filter_by_selector_chain(root, 
+[lambda x: selector.filter_by_element(x, "body"), lambda x: selector.filter_by_element(x, "p"), lambda x: selector.filter_by_element(x, "p")],
+[True, True]))

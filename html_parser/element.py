@@ -21,9 +21,13 @@ class Element:
         self.attributes: Dict[str, str] = {}
         self.id: str = ""
         self.classes: List[str] = []
+        self.parent_list: List[Element] = []
 
     def add_child_element(self, child):
         self.parsed_content.append(child)
+        if type(child) != TextElement:
+            child.parent_list.extend(self.parent_list)
+            child.parent_list.append(self)
 
     def print(self, tabs: int = 0, attributes: bool = False):
         if attributes:
