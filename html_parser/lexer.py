@@ -1,6 +1,6 @@
 from typing import List
-from element import Element, TextElement
-from utilities import smart_split
+from html_parser.element import Element, TextElement
+from html_parser.utilities import smart_split
 
 
 void_elements: List[str] = ["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]
@@ -69,8 +69,3 @@ def parse(loaded: str) -> Element:
             parsed_text += char
 
     return root
-    
-
-loaded: str = load("html_parser/samples/sample1.html")
-root: Element = parse(loaded)
-root.print(attributes=True)

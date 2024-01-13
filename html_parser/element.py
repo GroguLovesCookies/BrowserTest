@@ -27,7 +27,7 @@ class Element:
 
     def print(self, tabs: int = 0, attributes: bool = False):
         if attributes:
-            print("  "*tabs + self.type + "#" + self.id + "." + ".".join(self.classes), end=" ")
+            print("  "*tabs + repr(self), end=" ")
             print("(", end="")
             for attribute, value in self.attributes.items():
                 print(attribute + ": " + value, end=" ")
@@ -41,6 +41,14 @@ class Element:
         self.attributes[attribute] = value
         if attribute in Element.attributes_to_functions.keys():
             Element.attributes_to_functions[attribute](self, value)
+    
+    def __repr__(self) -> str:
+        output = self.type
+        if self.id != "":
+            output += "#" + self.id
+        if len(self.classes) > 0:
+            output += "." + ".".join(self.classes)
+        return output
 
 
 class TextElement(Element):
