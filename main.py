@@ -23,8 +23,6 @@ print(selector.filter_by_selector_chain(root,
 [True, True]))
 
 
-compiled_conditions, direct_descendants = css_parser.parse_selector("body p > p", root)
-print(css_parser.tempbody)
+compiled_conditions, direct_descendants = css_parser.parse_selector("[title|=\"test\"]", root)
 print()
-print(direct_descendants)
 print(selector.filter_by_selector_chain(root, compiled_conditions, direct_descendants))
