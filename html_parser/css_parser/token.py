@@ -7,7 +7,7 @@ class Token:
     RELATION_INDIRECT_PARENT: str = "INP"
     RELATION_DIRECT_PARENT: str = "DP"
 
-    def __init__(self, tok_type, tok_value):
+    def __init__(self, tok_type: str, tok_value: str):
         self.type = tok_type
         self.value = tok_value
 

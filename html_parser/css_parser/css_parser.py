@@ -80,29 +80,25 @@ def tokenize(text: str) -> List[Token]:
     return output
 
 
-def parse_selector(selector_text: str, root: Element=None) -> tuple[List[Callable[[Element], bool]], List[bool]]:
+def parse_selector(tokens: str) -> tuple[List[Callable[[Element], bool]], List[bool]]:
     out: List[Callable[[Element], bool]] = []
     direct: List[bool] = []
     is_direct: bool = False
     ignore_direct: bool = False
 
-    parts = selector_text.split()
     global part
-    for i, part in enumerate(parts):
-        matched = False
-        for pattern, callback in patterns.items():
-            match = re.findall(pattern, part)
-            if len(match) > 0:
-                matched = True
-                # Handle logic for special selectors
-                convert_to_callable(pattern, match[0], out)
-                break
-        if not matched:
-            if part == ">":
-                # Handle logic for direct descendant
-                is_direct = True
-                ignore_direct = True
-            else:
+    for i, token in enumerate(tokens):
+        part = token.value
+        if token.type == token.TOKEN_SELECTOR:
+            matched = False
+            for pattern, callback in patterns.items():
+                match = re.findall(pattern, part)
+                if len(match) > 0:
+                    matched = True
+                    # Handle logic for special selectors
+                    convert_to_callable(pattern, match[0], out)
+                    break
+            if not matched:
                 # Handle raw element selector
 
                 # This is an absolutely horrendous solution to the issue. I was unable to find another one
@@ -114,6 +110,7 @@ def parse_selector(selector_text: str, root: Element=None) -> tuple[List[Callabl
                 # The only possibility is to create separate copies for each part value.
                 # All of these must be declared global, or recursive_select will be unable to run the
                 # lambda expression.
+            # Handle logic for direct descendant
                 exec(f"global temp{part}")
                 # All variables used in this exec expression must be declared global.
                 exec(f"temp{part} = (part+'.')[:-1]", globals())
@@ -122,11 +119,8 @@ def parse_selector(selector_text: str, root: Element=None) -> tuple[List[Callabl
                 # global tempbody
                 # tempbody = (part + ".")[:-1]
                 # out.append(lambda x: filter_by_element(x, css_parser.tempbody))
-        if i > 0 and not ignore_direct:
-            # Must update direct descendant array
-            direct.append(is_direct)
-            is_direct = False
-        ignore_direct = False
+        elif token.type == token.TOKEN_RELATION:
+            direct.append(part == Token.RELATION_DIRECT_PARENT)
     return out, direct
 
 def convert_to_callable(pattern: str, matched: str, out: List[Callable[[Element], bool]]):
