@@ -9,6 +9,11 @@ loaded: str = lexer.load("html_parser/samples/sample1.html")
 root: Element = lexer.parse(loaded)
 root.print(attributes=True)
 
-tokens = css_parser.tokenize("body > div")
-conditions, relations = css_parser.parse_selector(tokens)
-print(selector.filter_by_selector_chain(root, conditions, relations))
+print(selector.recursive_select(root, (filters.filter_by_attribute_pipe, ("title", "\"test\""))))
+print(selector.filter_by_selector_chain(root, [(filters.filter_by_id, ("body",)), (filters.filter_by_element, ("p",)), (filters.filter_by_element, ("p",))],
+[True, True]))
+
+print()
+condition, relations = css_parser.parse_selector(css_parser.tokenize("[title|=\"test\"] > p"))
+print(condition)
+print(selector.filter_by_selector_chain(root, condition, relations))

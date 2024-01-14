@@ -80,8 +80,8 @@ def tokenize(text: str) -> List[Token]:
     return output
 
 
-def parse_selector(tokens: str) -> tuple[List[Callable[[Element], bool]], List[bool]]:
-    out: List[Callable[[Element], bool]] = []
+def parse_selector(tokens: str) -> tuple[List[tuple[Callable, tuple]], List[bool]]:
+    out: List[tuple[Callable, tuple]] = []
     direct: List[bool] = []
     is_direct: bool = False
     ignore_direct: bool = False
@@ -96,50 +96,20 @@ def parse_selector(tokens: str) -> tuple[List[Callable[[Element], bool]], List[b
                 if len(match) > 0:
                     matched = True
                     # Handle logic for special selectors
-                    convert_to_callable(pattern, match[0], out)
+                    out.append(convert_to_callable(pattern, match[0]))
                     break
             if not matched:
                 # Handle raw element selector
-
-                # This is an absolutely horrendous solution to the issue. I was unable to find another one
-                # that still enables using lambda expressions as filters, which is a useful property to have.
-                # Passing simply "part" into the lambda expression results in every callback in the list
-                # using the same pointer: the last value that part was.
-                # Assigning these into a temporary list and passing in temps[i] does not work either,
-                # likely due to the same issue.
-                # The only possibility is to create separate copies for each part value.
-                # All of these must be declared global, or recursive_select will be unable to run the
-                # lambda expression.
-            # Handle logic for direct descendant
-                exec(f"global temp{part}")
-                # All variables used in this exec expression must be declared global.
-                exec(f"temp{part} = (part+'.')[:-1]", globals())
-                exec(f"out.append(lambda x: filter_by_element(x, css_parser.temp{part}))")
-                # This code actually runs (when part = "body"):
-                # global tempbody
-                # tempbody = (part + ".")[:-1]
-                # out.append(lambda x: filter_by_element(x, css_parser.tempbody))
+                out.append((filter_by_element, (part,)))
         elif token.type == token.TOKEN_RELATION:
             direct.append(part == Token.RELATION_DIRECT_PARENT)
     return out, direct
 
-def convert_to_callable(pattern: str, matched: str, out: List[Callable[[Element], bool]]):
+def convert_to_callable(pattern: str, matched: str) -> tuple[Callable, tuple]:
     callback: Callable = patterns[pattern]
-    global global_matched, global_pattern
-    global_matched = matched
-    global_pattern = pattern
-
-    exec(f"global desired_callback_{len(out)}")
-    exec(f"desired_callback_{len(out)} = patterns[global_pattern]", globals())
     if pattern == class_pattern or pattern == id_pattern:
-        exec(f"global temp{len(out)}")
-        exec(f"temp{len(out)} = global_matched[1:]", globals())
-        exec(f"out.append(lambda x: css_parser.desired_callback_{len(out)}(x, css_parser.temp{len(out)}))")
+        return callback, (matched[1:],)
     elif pattern == attr_existence_pattern:
-        exec(f"global temp{len(out)}")
-        exec(f"temp{len(out)} = global_matched[1:-1]", globals())
-        exec(f"out.append(lambda x: css_parser.desired_callback_{len(out)}(x, css_parser.temp{len(out)}))")
+        return callback, (matched[1:-1],)
     else:
-        exec(f"global temp{len(out)}")
-        exec(f"temp{len(out)} = global_matched[1:-1].split(split_strings[global_pattern])", globals())
-        exec(f"out.append(lambda x: css_parser.desired_callback_{len(out)}(x, *css_parser.temp{len(out)}))")
+        return callback, matched[1:-1].split(split_strings[pattern])

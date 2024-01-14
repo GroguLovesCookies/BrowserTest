@@ -1,10 +1,10 @@
 from html_parser.element import Element, TextElement
-from typing import List, Callable
+from typing import List, Callable, Dict
 from html_parser.css_parser import css_parser
 
-def recursive_select(root: Element, condition: Callable[[Element], bool], ignore_root: bool = False) -> List[Element]:
+def recursive_select(root: Element, condition: tuple[Callable, tuple], ignore_root: bool = False) -> List[Element]:
     output: List[Element] = []
-    if not ignore_root and condition(root):
+    if not ignore_root and condition[0](root, *condition[1]):
         output.append(root)
     for element in root.parsed_content:
         if type(element) != TextElement:
@@ -13,15 +13,15 @@ def recursive_select(root: Element, condition: Callable[[Element], bool], ignore
     return output
 
 
-def select_from_list(elements: List[Element], condition: Callable[[Element], bool]) -> List[Element]:
+def select_from_list(elements: List[Element], condition: tuple[Callable, tuple]) -> List[Element]:
     output = []
     for element in elements:
-        if condition(element):
+        if condition[0](element, *condition[1]):
             output.append(element)
     return output
 
 
-def filter_by_selector_chain(root: Element, selectors: List[Callable[[Element], bool]], selectors_are_direct: List[bool]) -> List[Element]:
+def filter_by_selector_chain(root: Element, selectors: List[tuple[Callable, tuple]], selectors_are_direct: List[bool]) -> List[Element]:
     current_iteration: List[Element] = recursive_select(root, selectors[0])
     temp: List[Element] = []
     for i, selector in enumerate(selectors[1:]):
