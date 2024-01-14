@@ -2,6 +2,7 @@ import re
 from typing import List, Callable, Dict
 from html_parser.css_parser.filters import *
 from html_parser.utilities import smart_split, copy_string
+from html_parser.css_parser.token import Token
 
 
 class_pattern: str = "\.[a-zA-Z\-]+"
@@ -32,6 +33,51 @@ split_strings: Dict[str, str] = {
     attr_contains: "*=",
     attr_pipe: "|="
 }
+
+
+def tokenize(text: str) -> List[Token]:
+    i: int = 0
+    output: List[Token] = []
+    cur_tok_value: str = ""
+    previous_space: bool = False
+    ignore_next_space: bool = False
+
+    in_properties: bool = False
+    while i < len(text):
+        char: chr = text[i]
+        # Evaluate the characters
+        if char.isspace():
+            if not in_properties and cur_tok_value and not ignore_next_space:
+                output.append(Token(Token.TOKEN_SELECTOR, cur_tok_value))
+                cur_tok_value = ""
+
+                output.append(Token(Token.TOKEN_RELATION, Token.RELATION_INDIRECT_PARENT))
+
+            previous_space = True
+            i += 1
+            continue
+        elif char == ">":
+            ignore_next_space = True
+            i += 1
+
+            if previous_space:
+                output[-1].value = Token.RELATION_DIRECT_PARENT
+            else:
+                output.append(Token(Token.TOKEN_SELECTOR, cur_tok_value))
+                cur_tok_value = ""
+                output.append(Token(Token.TOKEN_RELATION, Token.RELATION_DIRECT_PARENT))
+
+            continue
+        elif not in_properties:
+            cur_tok_value += char
+        ignore_next_space = False
+        previous_space = False
+        i += 1
+
+    if cur_tok_value:
+        output.append(Token(Token.TOKEN_SELECTOR, cur_tok_value))
+    
+    return output
 
 
 def parse_selector(selector_text: str, root: Element=None) -> tuple[List[Callable[[Element], bool]], List[bool]]:
