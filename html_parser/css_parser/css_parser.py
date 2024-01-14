@@ -13,6 +13,7 @@ attr_ends_with: str = "\[[a-zA-Z\-]+\$=.+\]"
 attr_contains: str = "\[[a-zA-Z\-]+\*=.+\]"
 attr_pipe: str = "\[[a-zA-Z\-]+\|=.+\]"
 attr_existence_pattern: str = "\[[a-zA-Z\-]+\]"
+universal_pattern: str = "\*"
 
 
 patterns: Dict[str, Callable[[Element], bool]] = {
@@ -23,7 +24,8 @@ patterns: Dict[str, Callable[[Element], bool]] = {
     attr_pipe: filter_by_attribute_pipe, 
     attr_existence_pattern: filter_by_attribute_existence,
     class_pattern: filter_by_class, 
-    id_pattern: filter_by_id 
+    id_pattern: filter_by_id,
+    universal_pattern: filter_nothing
 }
 
 split_strings: Dict[str, str] = {
@@ -86,7 +88,6 @@ def parse_selector(tokens: str) -> tuple[List[tuple[Callable, tuple]], List[bool
     is_direct: bool = False
     ignore_direct: bool = False
 
-    global part
     for i, token in enumerate(tokens):
         part = token.value
         if token.type == token.TOKEN_SELECTOR:
@@ -111,5 +112,7 @@ def convert_to_callable(pattern: str, matched: str) -> tuple[Callable, tuple]:
         return callback, (matched[1:],)
     elif pattern == attr_existence_pattern:
         return callback, (matched[1:-1],)
+    elif pattern == universal_pattern:
+        return callback, ()
     else:
         return callback, matched[1:-1].split(split_strings[pattern])

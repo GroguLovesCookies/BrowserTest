@@ -38,3 +38,7 @@ def filter_by_attribute_content(element: Element, desired_attribute: str, desire
 def filter_by_attribute_pipe(element: Element, desired_attribute: str, desired_start: str) -> bool:
     return filter_by_attribute_value(element, desired_attribute, desired_start) or \
         filter_by_attribute_start(element, desired_attribute, desired_start[:-1] + "-\"")
+
+# *
+def filter_nothing(element: Element):
+    return True

@@ -14,6 +14,6 @@ print(selector.filter_by_selector_chain(root, [(filters.filter_by_id, ("body",))
 [True, True]))
 
 print()
-condition, relations = css_parser.parse_selector(css_parser.tokenize("[title|=\"test\"] > p"))
+condition, relations = css_parser.parse_selector(css_parser.tokenize("body > *"))
 print(condition)
 print(selector.filter_by_selector_chain(root, condition, relations))

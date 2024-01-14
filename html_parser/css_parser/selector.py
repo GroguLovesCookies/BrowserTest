@@ -16,6 +16,8 @@ def recursive_select(root: Element, condition: tuple[Callable, tuple], ignore_ro
 def select_from_list(elements: List[Element], condition: tuple[Callable, tuple]) -> List[Element]:
     output = []
     for element in elements:
+        if type(element) == TextElement:
+            continue
         if condition[0](element, *condition[1]):
             output.append(element)
     return output
