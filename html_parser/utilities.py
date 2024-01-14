@@ -20,3 +20,7 @@ def smart_split(in_string: str, split_character: chr = " ", ignore_character: ch
     output.append(current_split)
     
     return output
+
+
+def copy_string(string: str) -> str:
+    return (string + ".")[:-1]
