@@ -3,6 +3,7 @@ class Token:
     TOKEN_SELECTOR: str = "SELECTOR"
     TOKEN_PROPERTY: str = "PROPERTY"
     TOKEN_VALUE: str = "VALUE"
+    TOKEN_SPLIT: str = "SPLIT"
 
     RELATION_INDIRECT_PARENT: str = "INP"
     RELATION_DIRECT_PARENT: str = "DP"

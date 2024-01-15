@@ -86,9 +86,19 @@ def tokenize(text: str) -> List[Token]:
             next_selector_is_targeted = False
             i += 1
             continue
-        elif char == "&":
+        elif char == "&" and not in_properties:
             # Handle targeted selector logic
             next_selector_is_targeted = True
+            if len(output) == 0 or output[-1].type == Token.TOKEN_SPLIT:
+                    output.append(Token(Token.TOKEN_RELATION, Token.RELATION_INDIRECT_PARENT))
+        elif char == "," and not in_properties:
+            if previous_space:
+                del output[-1]
+            else:
+                output.append(Token(Token.TOKEN_SELECTOR, cur_tok_value))
+                cur_tok_value = ""
+            ignore_next_space = True
+            output.append(Token(Token.TOKEN_SPLIT, Token.TOKEN_SPLIT))
         elif char in relation_chars.keys():
             ignore_next_space = True
             i += 1
@@ -147,7 +157,6 @@ def get_selector_matches(selector: str) -> Dict[str, List[str]]:
                 output[pattern] = match[:]
                 for match_value in match:
                     selector_copy = selector_copy.replace(match_value, "")
-                    print(selector_copy)
                 break
         if not matched:
             output[element_pattern] = [selector_copy[:]]
@@ -158,23 +167,31 @@ def get_selector_matches(selector: str) -> Dict[str, List[str]]:
 
 def zip_tokens(tokens: List[Token]) -> List[tuple[List[Token], List[Token]]]:
     output: List[tuple[List[Token], List[Token]]] = []
-    current_selectors: List[Token] = []
+    current_selectors: List[List[Token]] = []
+    current_selector: List[Token] = []
     current_properties: List[Token] = []
     in_properties: bool = False
     for token in tokens:
         if token.type == Token.TOKEN_PROPERTY and not in_properties:
+            if len(current_selector) > 0:
+                current_selectors.append(current_selector)
             in_properties = True
         elif token.type != Token.TOKEN_PROPERTY and token.type != Token.TOKEN_VALUE and in_properties:
             in_properties = False
-            output.append((current_selectors[:], current_properties[:]))
+            for selector in current_selectors:
+                output.append((selector[:], current_properties[:]))
             current_selectors = []
             current_properties = []
-        if not in_properties:
-            current_selectors.append(token)
+        if not in_properties and not token.type == Token.TOKEN_SPLIT:
+            current_selector.append(token)
+        elif token.type == Token.TOKEN_SPLIT:
+            current_selectors.append(current_selector[:])
+            current_selector = []
         else:
             current_properties.append(token)
     if len(current_properties) > 0:
-        output.append((current_selectors[:], current_properties[:]))
+        for selector in current_selectors:
+            output.append((selector[:], current_properties[:]))
     return output
 
 
