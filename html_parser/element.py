@@ -1,4 +1,5 @@
 from typing import List, Dict, Callable
+from html_parser.css_parser.load_properties import *
 
 
 def set_id(element, value: str):
@@ -23,6 +24,7 @@ class Element:
         self.classes: List[str] = []
         self.parent_list: List[Element] = []
         self.index: int = 0
+        self.style: Dict[str, str] = {}
 
     @property
     def siblings(self) -> List:
@@ -66,6 +68,16 @@ class Element:
         if attribute in Element.attributes_to_functions.keys():
             Element.attributes_to_functions[attribute](self, value)
 
+    def set_style_property(self, css_property: str, css_value: str, ignore_if_existent: bool = False):
+        if not (ignore_if_existent and css_property in self.style.keys()):
+            self.style[css_property] = css_value
+        if type(self) == TextElement:
+            return
+        if css_property in inherited_properties:
+            for child in self.parsed_content:
+                child.set_style_property(css_property, css_value, True)
+
+
     def __repr__(self) -> str:
         output = self.type
         if self.id != "":
@@ -79,6 +91,22 @@ class TextElement(Element):
     def __init__(self, text: str):
         self.type = "text"
         self.content: str = text
+        self.style: Dict[str, str] = {}
 
     def print(self, tabs=0, attributes=False):
         print("  "*tabs + self.content)
+    
+    def __repr__(self) -> str:
+        return self.content
+
+
+def get_text_elements(root: Element) -> List[TextElement]:
+    output: List[TextElement] = []
+
+    if type(root) == TextElement:
+        output.append(root)
+    else:
+        for child in root.parsed_content:
+            output.extend(get_text_elements(child))
+
+    return output

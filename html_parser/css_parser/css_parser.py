@@ -175,7 +175,8 @@ def zip_tokens(tokens: List[Token]) -> List[tuple[List[Token], List[Token]]]:
     for token in tokens:
         if token.type == Token.TOKEN_PROPERTY and not in_properties:
             if len(current_selector) > 0:
-                current_selectors.append(current_selector)
+                current_selectors.append(current_selector[:])
+                current_selector = []
             in_properties = True
         elif token.type != Token.TOKEN_PROPERTY and token.type != Token.TOKEN_VALUE and in_properties:
             in_properties = False
