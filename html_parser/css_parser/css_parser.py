@@ -48,6 +48,7 @@ def tokenize(text: str) -> List[Token]:
     cur_tok_value: str = ""
     previous_space: bool = False
     ignore_next_space: bool = False
+    next_selector_is_targeted: bool = False
 
     in_properties: bool = False
     while i < len(text):
@@ -55,14 +56,23 @@ def tokenize(text: str) -> List[Token]:
         # Evaluate the characters
         if char.isspace():
             if not in_properties and cur_tok_value and not ignore_next_space:
-                output.append(Token(Token.TOKEN_SELECTOR, cur_tok_value))
+                if len(output) == 0:
+                    output.append(Token(Token.TOKEN_RELATION, Token.RELATION_INDIRECT_PARENT))
+                if next_selector_is_targeted:
+                    output.append(Token(Token.TOKEN_SELECTOR, cur_tok_value, Token.PSEUDOTYPE_TARGETED))
+                else:
+                    output.append(Token(Token.TOKEN_SELECTOR, cur_tok_value))
                 cur_tok_value = ""
 
                 output.append(Token(Token.TOKEN_RELATION, Token.RELATION_INDIRECT_PARENT))
 
             previous_space = True
+            next_selector_is_targeted = False
             i += 1
             continue
+        elif char == "&":
+            # Handle targeted selector logic
+            next_selector_is_targeted = True
         elif char in relation_chars.keys():
             ignore_next_space = True
             i += 1
@@ -87,15 +97,20 @@ def tokenize(text: str) -> List[Token]:
     return output
 
 
-def parse_selector(tokens: str) -> tuple[List[tuple[Callable, tuple]], List[bool]]:
+def parse_selector(tokens: str) -> tuple[List[tuple[Callable, tuple]], List[bool], int]:
     out: List[tuple[Callable, tuple]] = []
     direct: List[bool] = []
     is_direct: bool = False
     ignore_direct: bool = False
+    has_targeted_selector: bool = False
+    targeted_index: int = 0
 
     for i, token in enumerate(tokens):
         part = token.value
         if token.type == token.TOKEN_SELECTOR:
+            if token.pseudo_type == token.PSEUDOTYPE_TARGETED:
+                has_targeted_selector = True
+                targeted_index = len(out)
             matched = False
             for pattern, callback in patterns.items():
                 match = re.findall(pattern, part)
@@ -109,7 +124,10 @@ def parse_selector(tokens: str) -> tuple[List[tuple[Callable, tuple]], List[bool
                 out.append((filter_by_element, (part,)))
         elif token.type == token.TOKEN_RELATION:
             direct.append(token.value)
-    return out, direct
+    if has_targeted_selector:
+        return out, direct, targeted_index
+    else:
+        return out, direct, len(out) - 1
 
 def convert_to_callable(pattern: str, matched: str) -> tuple[Callable, tuple]:
     callback: Callable = patterns[pattern]

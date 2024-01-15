@@ -10,5 +10,7 @@ loaded: str = lexer.load("html_parser/samples/sample1.html")
 root: Element = lexer.parse(loaded)
 root.print(attributes=True)
 
-print(selector.filter_by_targeted_selector(root, [(filters.filter_by_element, ("body",)), (filters.filter_by_element, ("p",)), (filters.filter_by_element, ("p"))],
-[Token.RELATION_INDIRECT_PARENT, Token.RELATION_DIRECT_PARENT, Token.RELATION_DIRECT_PARENT], 2))
+tokens = css_parser.tokenize("&p + div")
+print(tokens)
+conditions, relations, targeted_index = css_parser.parse_selector(tokens)
+print(selector.filter_by_targeted_selector(root, conditions, relations, targeted_index))

@@ -9,9 +9,13 @@ class Token:
     RELATION_INDIRECT_SIBLING: str = "INS"
     RELATION_DIRECT_SIBLING: str = "DS"
 
-    def __init__(self, tok_type: str, tok_value: str):
+    PSEUDOTYPE_NONE: str = "PSN"
+    PSEUDOTYPE_TARGETED: str = "PST"
+
+    def __init__(self, tok_type: str, tok_value: str, pseudo_type: str = "PSN"):
         self.type = tok_type
         self.value = tok_value
+        self.pseudo_type = pseudo_type
 
     def __repr__(self) -> str:
-        return f"{self.type}: {self.value}"
+        return f"{self.type}: {self.value}: {self.pseudo_type}"
