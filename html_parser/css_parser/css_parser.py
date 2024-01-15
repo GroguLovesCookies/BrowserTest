@@ -103,11 +103,12 @@ def tokenize(text: str) -> List[Token]:
             ignore_next_space = True
             i += 1
 
-            if previous_space:
+            if previous_space and output[-1].type != Token.TOKEN_SPLIT:
                 output[-1].value = relation_chars[char]
             else:
-                output.append(Token(Token.TOKEN_SELECTOR, cur_tok_value))
-                cur_tok_value = ""
+                if cur_tok_value != "":
+                    output.append(Token(Token.TOKEN_SELECTOR, cur_tok_value))
+                    cur_tok_value = ""
                 output.append(Token(Token.TOKEN_RELATION, relation_chars[char]))
 
             continue
