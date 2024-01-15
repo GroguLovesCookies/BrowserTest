@@ -42,21 +42,27 @@ relation_chars: Dict[chr, str] = {
     "~": Token.RELATION_INDIRECT_SIBLING,
 }
 
+
 def tokenize(text: str) -> List[Token]:
     i: int = 0
     output: List[Token] = []
+
     cur_tok_value: str = ""
+    cur_property_value: str = ""
+    cur_value_value: str = ""
+
     previous_space: bool = False
     ignore_next_space: bool = False
     next_selector_is_targeted: bool = False
-
     in_properties: bool = False
+    in_value: bool = False
+
     while i < len(text):
         char: chr = text[i]
         # Evaluate the characters
         if char.isspace():
             if not in_properties and cur_tok_value and not ignore_next_space:
-                if len(output) == 0:
+                if len(output) == 0 or output[-1].type == Token.TOKEN_VALUE:
                     output.append(Token(Token.TOKEN_RELATION, Token.RELATION_INDIRECT_PARENT))
                 if next_selector_is_targeted:
                     output.append(Token(Token.TOKEN_SELECTOR, cur_tok_value, Token.PSEUDOTYPE_TARGETED))
@@ -85,8 +91,28 @@ def tokenize(text: str) -> List[Token]:
                 output.append(Token(Token.TOKEN_RELATION, relation_chars[char]))
 
             continue
+        elif char == "{":
+            in_properties = True
+            if previous_space:
+                del output[-1]
+        elif char == "}":
+            in_properties = False
+        elif char == ":":
+            if in_properties:
+                in_value = True
+                output.append(Token(Token.TOKEN_PROPERTY, cur_property_value))
+                cur_property_value = ""
+        elif char == ";":
+            if in_properties:
+                in_value = False
+                output.append(Token(Token.TOKEN_VALUE, cur_value_value))
+                cur_value_value = ""
         elif not in_properties:
             cur_tok_value += char
+        elif not in_value:
+            cur_property_value += char
+        else:
+            cur_value_value += char
         ignore_next_space = False
         previous_space = False
         i += 1
@@ -94,6 +120,35 @@ def tokenize(text: str) -> List[Token]:
     if cur_tok_value:
         output.append(Token(Token.TOKEN_SELECTOR, cur_tok_value))
     
+    return output
+
+
+def zip_tokens(tokens: List[Token]) -> List[tuple[List[Token], List[Token]]]:
+    output: List[tuple[List[Token], List[Token]]] = []
+    current_selectors: List[Token] = []
+    current_properties: List[Token] = []
+    in_properties: bool = False
+    for token in tokens:
+        if token.type == Token.TOKEN_PROPERTY and not in_properties:
+            in_properties = True
+        elif token.type != Token.TOKEN_PROPERTY and token.type != Token.TOKEN_VALUE and in_properties:
+            in_properties = False
+            output.append((current_selectors[:], current_properties[:]))
+            current_selectors = []
+            current_properties = []
+        if not in_properties:
+            current_selectors.append(token)
+        else:
+            current_properties.append(token)
+    if len(current_properties) > 0:
+        output.append((current_selectors[:], current_properties[:]))
+    return output
+
+
+def parse_zipped_tokens(tokens: List[tuple[List[Token], List[Token]]]) -> List[tuple[tuple[List[tuple[Callable, tuple]], List[bool], int], Dict[str, str]]]:
+    output: List[tuple[tuple[List[tuple[Callable, tuple]], List[bool], int], Dict[str, str]]] = []
+    for selector, properties in tokens:
+        output.append((parse_selector(selector), parse_properties(properties)))
     return output
 
 
@@ -128,6 +183,20 @@ def parse_selector(tokens: str) -> tuple[List[tuple[Callable, tuple]], List[bool
         return out, direct, targeted_index
     else:
         return out, direct, len(out) - 1
+
+
+def parse_properties(tokens: List[Token]) -> Dict[str, str]:
+    previous_property: str = ""
+    output: Dict[str, str] = {}
+    
+    for token in tokens:
+        if token.type == Token.TOKEN_PROPERTY:
+            previous_property = token.value
+        elif token.type == Token.TOKEN_VALUE:
+            output[previous_property] = token.value
+    
+    return output
+
 
 def convert_to_callable(pattern: str, matched: str) -> tuple[Callable, tuple]:
     callback: Callable = patterns[pattern]
