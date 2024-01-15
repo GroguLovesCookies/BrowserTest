@@ -5,8 +5,8 @@ from html_parser.utilities import smart_split, copy_string
 from html_parser.css_parser.token import Token
 
 
-class_pattern: str = "\.[a-zA-Z\-]+"
-id_pattern: str = "#[a-zA-Z\-]+"
+class_pattern: str = "\.[a-zA-Z\-1-9]+"
+id_pattern: str = "#[a-zA-Z\-1-9]+"
 attr_is: str = "\[[a-zA-Z\-]+=.+\]"
 attr_starts_with: str = "\[[a-zA-Z\-]+\^=.+\]"
 attr_ends_with: str = "\[[a-zA-Z\-]+\$=.+\]"
@@ -14,7 +14,16 @@ attr_contains: str = "\[[a-zA-Z\-]+\*=.+\]"
 attr_pipe: str = "\[[a-zA-Z\-]+\|=.+\]"
 attr_existence_pattern: str = "\[[a-zA-Z\-]+\]"
 universal_pattern: str = "\*"
+element_pattern: str = "[a-zA-Z\-1-9]+"
 
+
+patterns_to_check: List[str] = [
+    attr_is, attr_starts_with,
+    attr_ends_with, attr_contains,
+    attr_pipe, attr_existence_pattern,
+    class_pattern, id_pattern,
+    universal_pattern
+]
 
 patterns: Dict[str, Callable[[Element], bool]] = {
     attr_is: filter_by_attribute_value, 
@@ -25,7 +34,8 @@ patterns: Dict[str, Callable[[Element], bool]] = {
     attr_existence_pattern: filter_by_attribute_existence,
     class_pattern: filter_by_class, 
     id_pattern: filter_by_id,
-    universal_pattern: filter_nothing
+    universal_pattern: filter_nothing,
+    element_pattern: filter_by_element
 }
 
 split_strings: Dict[str, str] = {
@@ -118,8 +128,31 @@ def tokenize(text: str) -> List[Token]:
         i += 1
 
     if cur_tok_value:
+        if len(output) == 0 or output[-1].type == Token.TOKEN_VALUE:
+            output.append(Token(Token.TOKEN_RELATION, Token.RELATION_INDIRECT_PARENT))
         output.append(Token(Token.TOKEN_SELECTOR, cur_tok_value))
     
+    return output
+
+
+def get_selector_matches(selector: str) -> Dict[str, List[str]]:
+    output: Dict[str, List[str]] = {}
+    selector_copy = (selector + ".")[:-1]
+    while len(selector_copy) > 0 and not selector_copy.isspace():
+        matched = False
+        for pattern in patterns_to_check:
+            match = re.findall(pattern, selector_copy)
+            if len(match) > 0:
+                matched = True
+                output[pattern] = match[:]
+                for match_value in match:
+                    selector_copy = selector_copy.replace(match_value, "")
+                    print(selector_copy)
+                break
+        if not matched:
+            output[element_pattern] = [selector_copy[:]]
+            break
+        
     return output
 
 
@@ -160,23 +193,21 @@ def parse_selector(tokens: str) -> tuple[List[tuple[Callable, tuple]], List[bool
     has_targeted_selector: bool = False
     targeted_index: int = 0
 
+    current_selector_value: List[tuple[Callable, tuple]] = []
+
     for i, token in enumerate(tokens):
         part = token.value
         if token.type == token.TOKEN_SELECTOR:
+            current_selector_value = []
             if token.pseudo_type == token.PSEUDOTYPE_TARGETED:
                 has_targeted_selector = True
                 targeted_index = len(out)
-            matched = False
-            for pattern, callback in patterns.items():
-                match = re.findall(pattern, part)
-                if len(match) > 0:
-                    matched = True
-                    # Handle logic for special selectors
-                    out.append(convert_to_callable(pattern, match[0]))
-                    break
-            if not matched:
-                # Handle raw element selector
-                out.append((filter_by_element, (part,)))
+            for key, value in get_selector_matches(part).items():
+                current_selector_value.extend(convert_to_callable(key, value))
+            if len(current_selector_value) == 1:
+                out.append(current_selector_value[0])
+            else:
+                out.append((filter_by_composed, current_selector_value[:]))
         elif token.type == token.TOKEN_RELATION:
             direct.append(token.value)
     if has_targeted_selector:
@@ -198,13 +229,18 @@ def parse_properties(tokens: List[Token]) -> Dict[str, str]:
     return output
 
 
-def convert_to_callable(pattern: str, matched: str) -> tuple[Callable, tuple]:
+def convert_to_callable(pattern: str, matched: List[str]) -> tuple[Callable, tuple]:
     callback: Callable = patterns[pattern]
-    if pattern == class_pattern or pattern == id_pattern:
-        return callback, (matched[1:],)
-    elif pattern == attr_existence_pattern:
-        return callback, (matched[1:-1],)
-    elif pattern == universal_pattern:
-        return callback, ()
-    else:
-        return callback, matched[1:-1].split(split_strings[pattern])
+    conditions: List[tuple[Callable, tuple]] = []
+    for match in matched:
+        if pattern == class_pattern or pattern == id_pattern:
+            conditions.append((callback, (match[1:],)))
+        elif pattern == attr_existence_pattern:
+            conditions.append((callback, (match[1:-1],)))
+        elif pattern == universal_pattern:
+            conditions.append((callback, ()))
+        elif pattern == element_pattern:
+            conditions.append((callback, (match,)))
+        else:
+            conditions.append((callback, match[1:-1].split(split_strings[pattern])))
+    return conditions

@@ -42,3 +42,9 @@ def filter_by_attribute_pipe(element: Element, desired_attribute: str, desired_s
 # *
 def filter_nothing(element: Element):
     return True
+
+def filter_by_composed(element: Element, *args):
+    for filter in args:
+        if not filter[0](element, *filter[1]):
+            return False
+    return True
