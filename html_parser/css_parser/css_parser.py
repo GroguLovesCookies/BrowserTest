@@ -36,6 +36,11 @@ split_strings: Dict[str, str] = {
     attr_pipe: "|="
 }
 
+relation_chars: Dict[chr, str] = {
+    ">": Token.RELATION_DIRECT_PARENT,
+    "+": Token.RELATION_DIRECT_SIBLING,
+    "~": Token.RELATION_INDIRECT_SIBLING,
+}
 
 def tokenize(text: str) -> List[Token]:
     i: int = 0
@@ -58,16 +63,16 @@ def tokenize(text: str) -> List[Token]:
             previous_space = True
             i += 1
             continue
-        elif char == ">":
+        elif char in relation_chars.keys():
             ignore_next_space = True
             i += 1
 
             if previous_space:
-                output[-1].value = Token.RELATION_DIRECT_PARENT
+                output[-1].value = relation_chars[char]
             else:
                 output.append(Token(Token.TOKEN_SELECTOR, cur_tok_value))
                 cur_tok_value = ""
-                output.append(Token(Token.TOKEN_RELATION, Token.RELATION_DIRECT_PARENT))
+                output.append(Token(Token.TOKEN_RELATION, relation_chars[char]))
 
             continue
         elif not in_properties:
@@ -103,7 +108,7 @@ def parse_selector(tokens: str) -> tuple[List[tuple[Callable, tuple]], List[bool
                 # Handle raw element selector
                 out.append((filter_by_element, (part,)))
         elif token.type == token.TOKEN_RELATION:
-            direct.append(part == Token.RELATION_DIRECT_PARENT)
+            direct.append(token.value)
     return out, direct
 
 def convert_to_callable(pattern: str, matched: str) -> tuple[Callable, tuple]:

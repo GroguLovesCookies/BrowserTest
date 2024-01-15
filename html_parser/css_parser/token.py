@@ -6,6 +6,8 @@ class Token:
 
     RELATION_INDIRECT_PARENT: str = "INP"
     RELATION_DIRECT_PARENT: str = "DP"
+    RELATION_INDIRECT_SIBLING: str = "INS"
+    RELATION_DIRECT_SIBLING: str = "DS"
 
     def __init__(self, tok_type: str, tok_value: str):
         self.type = tok_type

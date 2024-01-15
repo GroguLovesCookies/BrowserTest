@@ -22,12 +22,32 @@ class Element:
         self.id: str = ""
         self.classes: List[str] = []
         self.parent_list: List[Element] = []
+        self.index: int = 0
+
+    @property
+    def siblings(self) -> List:
+        return self.parent.parsed_content
+
+    @property
+    def parent(self):
+        return self.parent_list[-1]
+
+    @property
+    def next_sibling(self) -> List:
+        for i in range(self.index+1, len(self.siblings)):
+            if type(self.siblings[i]) != TextElement:
+                return self.siblings[i]
+
+    @property
+    def siblings_after(self) -> List:
+        return self.siblings[self.index+1:]
 
     def add_child_element(self, child):
         self.parsed_content.append(child)
         if type(child) != TextElement:
             child.parent_list.extend(self.parent_list)
             child.parent_list.append(self)
+            child.index = len(self.parsed_content) - 1
 
     def print(self, tabs: int = 0, attributes: bool = False):
         if attributes:
@@ -45,7 +65,7 @@ class Element:
         self.attributes[attribute] = value
         if attribute in Element.attributes_to_functions.keys():
             Element.attributes_to_functions[attribute](self, value)
-    
+
     def __repr__(self) -> str:
         output = self.type
         if self.id != "":
