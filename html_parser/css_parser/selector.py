@@ -25,9 +25,9 @@ def select_from_list(elements: List[Element], condition: tuple[Callable, tuple])
 
 
 def filter_by_selector_chain(root: Element, selectors: List[tuple[Callable, tuple]], selectors_are_direct: List[bool]) -> List[Element]:
-    current_iteration: List[Element] = recursive_select(root, selectors[0])
+    current_iteration: List[Element] = [root]
     temp: List[Element] = []
-    for i, selector in enumerate(selectors[1:]):
+    for i, selector in enumerate(selectors):
         if selectors_are_direct[i] == Token.RELATION_DIRECT_PARENT:
             for element in current_iteration:
                 temp.extend(select_from_list(element.parsed_content, selector))
@@ -36,7 +36,7 @@ def filter_by_selector_chain(root: Element, selectors: List[tuple[Callable, tupl
                 temp.extend(recursive_select(element, selector, True))
         elif selectors_are_direct[i] == Token.RELATION_DIRECT_SIBLING:
             for element in current_iteration:
-                if element.next_sibling is not None:
+                if element.next_sibling is not None and selector[0](element.next_sibling, *selector[1]):
                     temp.append(element.next_sibling)
         elif selectors_are_direct[i] == Token.RELATION_INDIRECT_SIBLING:
             for element in current_iteration:
@@ -44,3 +44,15 @@ def filter_by_selector_chain(root: Element, selectors: List[tuple[Callable, tupl
         current_iteration = temp[:]
         temp = []
     return current_iteration
+
+
+def filter_by_targeted_selector(root: Element, selectors: List[tuple[Callable, tuple]], selectors_are_direct: List[bool], targeted_selector: int) -> List[Element]:
+    initial_pick: List[Element] = filter_by_selector_chain(root, selectors[:targeted_selector+1], selectors_are_direct)
+    output: List[Element] = []
+    sub_relations: List[bool] = selectors_are_direct[targeted_selector+1:]
+    sub_selectors: List[tuple[Callable, tuple]] = selectors[targeted_selector+1:]
+    for element in initial_pick:
+        if len(filter_by_selector_chain(element, sub_selectors, sub_relations)) > 0:
+            output.append(element)
+    return output
+        
